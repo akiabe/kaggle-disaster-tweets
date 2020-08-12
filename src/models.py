@@ -65,3 +65,49 @@ def train_naive_bayes(freqs, train_x, train_y):
     """
     loglikelihood = {}
     logprior = 0
+
+    # calculate the number of unique words in the vocabulary
+    vocab = set([pair[0] for pair in freqs.keys()])
+    V = len(vocab)
+
+    # calculate N_pos, N_neg, V_pos, V_neg
+    N_pos = N_neg = V_pos = V_neg = 0
+    for pair in freqs.keys():
+        # if the label is positive
+        if pair[1] > 0:
+            # increment the count of unique positive words
+            V_pos += 1
+            # increment the count of positive words by the count for (word, label) pair
+            N_pos += freqs[pair]
+        # else, the labels is negative
+        else:
+            # increment the count of unique negative words
+            V_neg += 1
+            # increment the count of negative words by the count for (word, label) pair
+            N_neg += freqs[pair]
+
+    # calculate the number of documents
+    D = len(train_y)
+
+    # calculate the number of positive documents
+    D_pos = np.sum(train_y)
+
+    # calculate the number of negative documents
+    D_neg = D - D_pos
+
+    # calculate logprior
+    logprior = np.log(D_pos) / np.log(D_neg)
+
+    for word in vocab:
+        # get the positive and negative frequency of the word
+        freq_pos = lookup(freqs, word, 1)
+        freq_neg = lookup(freqs, word, 0)
+
+        # calculate the probability of positive and negative
+        p_w_pos = (freq_pos + 1) / (N_pos + V)
+        p_w_neg = (freq_neg + 1) / (N_neg + V)
+
+        # calculate the log likelihood of the word
+        loglikelihood[word] = np.log(p_w_pos / p_w_neg)
+
+    return logprior, loglikelihood

@@ -8,6 +8,9 @@ from feature_generator import process_tweet, build_freqs, extract_features
 from models import sigmoid, gradientDescent
 from predict import predict_tweet, test_logistic_regression
 
+from models import lookup, train_naive_bayes
+from predict import naive_bayes_predict, test_naive_bayes
+
 def run(fold):
     # load train set with folds
     df = pd.read_csv(config.TRAINING_FILE)
@@ -38,6 +41,8 @@ def run(fold):
     # create frequency dictionary
     freqs = build_freqs(train_x, train_y)
 
+    ### logistic regression ###
+
     # collect the features 'x' and stack them into a matrix 'X'
     X = np.zeros((len(train_x), 3))
 
@@ -51,12 +56,27 @@ def run(fold):
     J, theta = gradientDescent(X, Y, np.zeros((3, 1)), 1e-9, 1500)
 
     # create predictions for valid set
-    preds = test_logistic_regression(valid_x, freqs, theta)
+    lr_preds = test_logistic_regression(valid_x, freqs, theta)
 
     # calculate and print accuracy
     # (# of tweets classified correctly) / (total # of tweets)
-    accuracy = np.sum(np.asarray(preds) == np.squeeze(valid_y)) / valid_y.shape[0]
-    print(f"Fold={fold}, Accuracy = {accuracy}")
+    lr_accuracy = np.sum(np.asarray(lr_preds) == np.squeeze(valid_y)) / valid_y.shape[0]
+    print(f"model lr : Fold={fold}, Accuracy = {lr_accuracy}")
+
+    ### naive bayes ###
+
+    # calculate the logprior and loglikelihood
+    logprior, loglikelihood = train_naive_bayes(freqs, valid_x, valid_y)
+
+    # create predictions for valid set
+    nb_preds = test_naive_bayes(valid_x, logprior, loglikelihood)
+
+    # calculate error between y_hats and valid_y
+    error = np.abs(np.mean(np.asarray(nb_preds) != np.squeeze(valid_y)))
+
+    # calculate and print accuracy
+    nb_accuracy = 1 - error
+    print(f"model nb : Fold={fold}, Accuracy = {nb_accuracy}")
 
 if __name__ == "__main__":
     # instantiate ArgumentParser of argparse
